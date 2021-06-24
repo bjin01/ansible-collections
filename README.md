@@ -1,5 +1,5 @@
 # ansible-collections
-##zookeeper 
+## example: __zookeeper__ 
 
 The inventory file has two type of linux distro: Debian/Ubuntu and SUSE because I have a mixed environment.
 The role zookeeper and the tasks are taking care of both distros.
