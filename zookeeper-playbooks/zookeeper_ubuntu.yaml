@@ -1,0 +1,13 @@
+---
+- name: zookeeper on ubuntu
+  hosts: 192.168.122.145
+  become: yes
+  become_user: bjin
+  roles:
+    - zookeeper
+
+- name: zookeeper on suse
+  hosts: zookeepers
+  roles:
+    - zookeeper
+

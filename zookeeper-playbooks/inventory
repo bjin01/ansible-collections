@@ -1,0 +1,9 @@
+192.168.122.187 zookeeper_id=1
+192.168.122.151 zookeeper_id=2
+192.168.122.200 zookeeper_id=3
+192.168.122.145 zookeeper_id=4
+
+[zookeepers]
+192.168.122.187 zookeeper_id=1
+192.168.122.151 zookeeper_id=2
+192.168.122.200 zookeeper_id=3

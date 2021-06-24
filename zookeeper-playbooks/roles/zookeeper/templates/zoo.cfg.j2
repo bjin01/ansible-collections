@@ -1,0 +1,12 @@
+tickTime=2000
+dataDir=/data/zookeeper
+clientPort=2181
+maxClientCnxns=60
+initLimit=5
+syncLimit=4
+
+{% for host in zookeeper_servers %}
+server.{{ hostvars[host].zookeeper_id | default(zookeeper_id) }}={{ ansible_default_ipv4.address }}:{{ zookeeper_leader_port }}:{{ zookeeper_election_port }}
+{% endfor %}
+
+admin.enableServer={{ zookeeper_enable_server | ternary('true', 'false') }}

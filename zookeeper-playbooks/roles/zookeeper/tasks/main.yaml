@@ -1,0 +1,144 @@
+---
+- name: Load OS-specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - ../vars/{{ ansible_os_family }}.yml
+    - ../vars/{{ ansible_distribution_release }}.yml
+    - ../vars/empty.yml
+  tags:
+    - always
+
+- name: install openjdk suse
+  shell: |
+    zypper in -y java-11-openjdk
+  when:  ansible_os_family == 'Suse'
+
+- name: install openjdk Ubuntu
+  become: yes
+  become_user: root
+  apt:
+    name: openjdk-11-jdk
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: prep activities suse
+  shell: |
+    groupadd sudo
+    groupadd zk
+    useradd zk -m
+    usermod --shell /bin/bash zk 
+    usermod -aG sudo zk
+    mkdir -p /data/zookeeper
+    chown zk:zk /data/zookeeper
+    wget https://mirror.klaus-uwe.me/apache/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz -O /opt/apache-zookeeper-3.7.0-bin.tar.gz
+    tar -xf /opt/apache-zookeeper-3.7.0-bin.tar.gz -C /opt
+    chown zk:zk -R /opt/apache-zookeeper-3.7.0-bin
+    ln -s /opt/apache-zookeeper-3.7.0-bin /opt/zookeeper
+    chown -R zk:zk /opt/zookeeper
+  when:  ansible_os_family == 'Suse'
+
+- name: group "zk" exist on suse
+  ansible.builtin.group:
+    name: zk
+    state: present
+  when: ansible_os_family == 'Suse'
+
+- name: prep activities ubuntu
+  become: yes
+  become_user: root
+  shell: |
+    useradd zk -m
+    usermod --shell /bin/bash zk
+    usermod -aG sudo zk
+    mkdir -p /data/zookeeper
+    chown zk:zk /data/zookeeper
+    wget https://mirror.klaus-uwe.me/apache/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz -O /opt/apache-zookeeper-3.7.0-bin.tar.gz
+    tar -xf /opt/apache-zookeeper-3.7.0-bin.tar.gz -C /opt
+    chown zk:zk -R /opt/apache-zookeeper-3.7.0-bin
+    ln -s /opt/apache-zookeeper-3.7.0-bin /opt/zookeeper
+    chown -R zk:zk /opt/zookeeper
+  when: ansible_os_family == 'Debian'
+
+- name: Change user password
+  become: yes
+  become_user: root
+  user:
+    name: zk
+    update_password: always
+    password: "{{ newpassword | password_hash('sha512', 'test') }}"
+
+- name: Template configuration file to zoo.cfg
+  become: yes
+  become_user: root
+  template:
+    src: zoo.cfg.j2
+    dest: "{{ zookeeper_dir }}/conf/zoo.cfg"
+    group: "zk"
+    owner: "zk"
+    mode: 0644
+  notify:
+    - Restart ZooKeeper service
+  tags:
+    - zookeeper_config
+
+- name: Template myid to {{ zookeeper_data_dir }}/myid
+  become: yes
+  become_user: root
+  template:
+    src: myid.j2
+    dest: "{{ zookeeper_data_dir }}/myid"
+    group: "zk"
+    owner: "zk"
+    mode: 0644
+  notify:
+    - Restart ZooKeeper service
+  tags:
+    - zookeeper_config
+
+- name: Create directory for symlink to ZooKeeper configuration file
+  become: yes
+  become_user: root
+  file:
+    path: /etc/zookeeper
+    state: directory
+    group: "zk"
+    owner: "zk"
+    mode: 0755
+  tags:
+    - zookeeper_config
+
+- name: Create symlink to ZooKeeper configuration file
+  become: yes
+  become_user: root
+  file:
+    src: "{{ zookeeper_dir }}/conf/zoo.cfg"
+    dest: /etc/zookeeper/zoo.cfg
+    state: link
+    group: "zk"
+    owner: "zk"
+  tags:
+    - zookeeper_config
+
+- name: Template ZooKeeper systemd service file
+  become: yes
+  become_user: root
+  template:
+    src: systemd-zk.service.j2
+    dest: "{{ zookeeper_unit_path }}"
+    group: "zk"
+    owner: "zk"
+    mode: 0644
+  tags:
+    - zookeeper_service
+
+- name: Start the ZooKeeper service
+  become: yes
+  become_user: root
+  systemd:
+    name: zk.service
+    state: started
+    enabled: yes
+  tags:
+    - zookeeper_service      
+
+

@@ -1,0 +1,4 @@
+---
+- hosts: zookeepers
+  roles:
+    - zookeeper

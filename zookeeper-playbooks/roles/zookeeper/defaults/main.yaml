@@ -1,0 +1,12 @@
+---
+zookeeper_dir: '/opt/apache-zookeeper-3.7.0-bin'
+zookeeper_data_dir: /data/zookeeper
+newpassword: 'test'
+
+zookeeper_id: 1
+zookeeper_leader_port: 2888
+zookeeper_election_port: 3888
+zookeeper_servers: "{{ groups['zookeepers'] }}"
+zookeeper_environment: {}
+
+zookeeper_enable_server: no
